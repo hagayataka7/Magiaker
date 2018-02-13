@@ -13,6 +13,7 @@ public class Action : MonoBehaviour
     public float RotationSpeed = 10f;  //回転速度
     public GameObject attackArea;
     public NavMeshAgent agent;
+    public IEnumerator NowCoroutine;
     //継承する
     public virtual void ActionEnter(GameObject target, GameObject self)
     {
@@ -21,7 +22,14 @@ public class Action : MonoBehaviour
     public virtual void StopCoroutines()
     {
         StopAllCoroutines();
-        FlagReset = true;
+       // FlagReset = true;
+    }
+    public void PauseEnd()
+    {
+        if (NowCoroutine != null)
+        { StartCoroutine(NowCoroutine); }
+        else
+        { FlagReset = true; }
     }
     public virtual void Death()
     {
@@ -40,5 +48,9 @@ public class Action : MonoBehaviour
             agent.velocity *= 0;
             agent.Stop();
         }
+    }
+    public void SetCoroutineReset()
+    {
+        NowCoroutine = null;
     }
 }

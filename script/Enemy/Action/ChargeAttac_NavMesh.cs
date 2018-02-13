@@ -37,19 +37,20 @@ public class ChargeAttac_NavMesh : Action
         agent.speed = speed;
         attackArea.SetActive(false);
     }
-    
-    public override void ActionEnter(GameObject target, GameObject self)
+    private void Update()
     {
-        base.ActionEnter(target, self);
         if (FlagReset)
         {
             SetSearchAction(true);
             attackArea.SetActive(false);
             FlagReset = false;
         }
+    }
+    public override void ActionEnter(GameObject target, GameObject self)
+    {
+        base.ActionEnter(target, self);
         if (GetSearchAction())
         {
-            //Debug.Log("Start");
             //targetに対しての正面方向をむく
             Turn(target, self);
         }
@@ -58,7 +59,6 @@ public class ChargeAttac_NavMesh : Action
         {
             SetSearchAction(false);
             StartCoroutine(ChargeAction(target));
-            // NavMeshAgent に目的地を設定する
         }
     }
     void Turn(GameObject target, GameObject self)
@@ -77,7 +77,6 @@ public class ChargeAttac_NavMesh : Action
         TargetPos.y = transform.position.y;
         Range.CharacterOnTouch = false;
         yield return StartCoroutine(SideMoveCheck(target));
-
         attackArea.SetActive(true);
 
         if (agent.pathStatus != NavMeshPathStatus.PathInvalid)
@@ -174,6 +173,11 @@ public class ChargeAttac_NavMesh : Action
         {
             agent.Stop();
         }
+    }
+    private void OnEnable()
+    {
+        SetSearchAction(true);
+        attackArea.SetActive(false);
     }
     private void OnDestroy()
     {

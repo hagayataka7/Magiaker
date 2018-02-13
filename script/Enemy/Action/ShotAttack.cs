@@ -30,17 +30,20 @@ public class ShotAttack : Action
     {
         character = GetComponent<Character>();
     }
-
-    public override void ActionEnter(GameObject target, GameObject self)
+    private void Update()
     {
-        base.ActionEnter(target, self);
         if (FlagReset)
         {
             offShooting();
             FlagReset = false;
         }
+    }
+    public override void ActionEnter(GameObject target, GameObject self)
+    {
+        base.ActionEnter(target, self);
+       
         //targetに対しての正面方向をむく
-        Turn(target, self);        
+        Turn(target, self);
         //targetを正面にしてShootingがfalseのときtreuにしてShotActionのコルーチンを開始させる
         if (Mathf.Abs(Mathf.Abs(transform.eulerAngles.y) - Mathf.Abs(targetRot.y)) < 0.5 && !GetShooting())
         { onShooting(); StartCoroutine("ShotAction",target); }
@@ -55,13 +58,13 @@ public class ShotAttack : Action
     }
     private IEnumerator ShotAction(GameObject target)
     {
-        
+        NowCoroutine = ShotAction(target);
         Sensor = PlayerSensor.GetComponent<PlayerSensor>();
         //targetが感知範囲から出た時にShootingがのtreuときfalseにしてwhile抜ける
         while (Sensor.GetPL_Search() && GetShooting())
         {
-            if (target.GetComponent<Character>().HP <= 0)
-            { yield break; }
+           // if (target.GetComponent<Character>().HP <= 0)
+            //{ break; }
             //弾を生成する
             GameObject Bullets = Instantiate(Bullet, transform.position, Quaternion.identity);
             //弾に初速を与える
@@ -69,13 +72,13 @@ public class ShotAttack : Action
             Bullets.AddComponent<AttackArea>();
             Bullets.GetComponent<AttackArea>().aligment = aligment.enemy;
             Bullets.GetComponent<AttackArea>().DestroyCheck = character.DamageObjDestroy;
-            Bullets.GetComponent<AttackArea>().Damage = Damage;            
+            Bullets.GetComponent<AttackArea>().Damage = Damage;
             //判別用のタグをつける
-            Bullets.tag = Tags.Magic;    
+            Bullets.tag = Tags.Magic;
             //WaitTimeの間、待って再度実行する
             yield return new WaitForSeconds(WaitTime);
         }
+        SetCoroutineReset();
         offShooting();
     }
-    
 }

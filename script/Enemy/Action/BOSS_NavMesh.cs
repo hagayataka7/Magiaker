@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-public class WalkandAttack_NavMesh : Action
+public class BOSS_NavMesh : Action
 {
     Vector3 targetRot;
     Animator anim;
-
+    [SerializeField]
+    List<GameObject> PopPoint = new List<GameObject>();
+    [SerializeField]
+    GameObject PopEnemy;
+    int Rnd;
     [SerializeField]
     int AttackRange = 10;
     [SerializeField]
@@ -15,8 +19,13 @@ public class WalkandAttack_NavMesh : Action
     bool AttackPlay = false;
     float TargetDistance;
     AnimatorStateInfo nowState;
+    [SerializeField]
+    int AttackMove = 4;
+    [SerializeField]
+    int PopMove = 5;
     private void Start()
     {
+        RandomSet();
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         Range = attackArea.GetComponent<AttackArea>();
@@ -64,11 +73,20 @@ public class WalkandAttack_NavMesh : Action
                     agent.Stop();
                     agent.velocity *= 0;
                     AttackPlay = true;
-                    StartCoroutine(AttackAction(target));
+                    if (Rnd < AttackMove)
+                    {
+                        StartCoroutine(AttackAction(target));
+                    }
+                    if (Rnd > 9 - PopMove)
+                    {
+                        StartCoroutine(PopAction());
+                    }
                 }
             }
         }
     }
+    void RandomSet()
+    { Rnd = Random.Range(0, 10); }
     void Turn(GameObject target, GameObject self)
     {
         //targetに対しての正面方向を取得する
@@ -80,6 +98,32 @@ public class WalkandAttack_NavMesh : Action
         self.transform.rotation = Quaternion.Slerp(self.transform.rotation, TargetRotation, Time.deltaTime * RotationSpeed);
         targetRot = TargetRotation.eulerAngles;
     }
+    
+    void EnemyPop()
+    {
+        int Pointnum = PopPoint.Count - 1;
+        for (int i = 0; i <= Pointnum; i++)
+        {
+            if (!PopPoint[i].GetComponent<PopPoint>().inArea)
+            {
+                GameObject Enemy = Instantiate(PopEnemy, PopPoint[i].transform.position, Quaternion.identity);
+            }
+        }
+    }
+    private IEnumerator PopAction()
+    {
+        NowCoroutine = PopAction();
+        anim.SetBool("Recall", true);
+        EnemyPop();
+        yield return StartCoroutine(WaitAnimationEnd("Recall"));
+        anim.SetBool("Recall", false);
+
+        AttackPlay = false;
+        SetSearchAction(true);
+        attackArea.SetActive(false);
+        RandomSet();
+    }
+
     private IEnumerator AttackAction(GameObject target)
     {
         NowCoroutine = AttackAction(target);
@@ -90,14 +134,19 @@ public class WalkandAttack_NavMesh : Action
         AttackPlay = false;
         SetSearchAction(true);
         attackArea.SetActive(false);
+        RandomSet();
     }
 
     private IEnumerator WaitAnimationEnd(string animatorName)
     {
         AnimatorStateInfo nowState = anim.GetCurrentAnimatorStateInfo(0);
         bool finish = false;
-        yield return new WaitForSeconds(nowState.length / 2);
-        attackArea.SetActive(true);
+        if(animatorName=="Attack")
+        {
+            yield return new WaitForSeconds(nowState.length / 2);
+            attackArea.SetActive(true);
+        }
+
         while (!finish)
         {
             nowState = anim.GetCurrentAnimatorStateInfo(0);

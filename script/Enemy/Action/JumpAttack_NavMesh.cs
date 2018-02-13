@@ -31,7 +31,7 @@ public class JumpAttack_NavMesh : Action
         Range.Damage = Damage;
         attackArea.SetActive(false);
     }
-   
+
     public override void ActionEnter(GameObject target, GameObject self)
     {
         base.ActionEnter(target, self);
@@ -45,7 +45,7 @@ public class JumpAttack_NavMesh : Action
         {
             if (agent.velocity == Vector3.zero)
             { anim.SetBool("Walk", false); }
-           
+
             float TargetDistance = 0;
             //自身とtargetの距離の二乗をTargetDistanceに取る
             TargetDistance = (target.transform.position - self.transform.position).sqrMagnitude;
@@ -67,9 +67,14 @@ public class JumpAttack_NavMesh : Action
             {
                 anim.SetBool("Walk", false);
                 SetSearchAction(false);
+                Range.CharacterOnTouch = false;
+                Vector3 StartPos = transform.position;
+                Vector3 EndPos = target.transform.position;
+                EndPos.y = transform.position.y;
+                agent.speed = AttackSpeed;
                 agent.Stop();
                 agent.velocity *= 0;
-                StartCoroutine(JumpAction(target));
+                StartCoroutine(JumpAction(StartPos, EndPos));
             }
         }
     }
@@ -83,16 +88,13 @@ public class JumpAttack_NavMesh : Action
         self.transform.rotation = Quaternion.Slerp(self.transform.rotation, TargetRotation, Time.deltaTime * RotationSpeed);
         targetRot = TargetRotation.eulerAngles;
     }
-    public IEnumerator JumpAction(GameObject target)
+    void PosSet(GameObject target)
     {
-        Range.CharacterOnTouch = false;
-        yield return StartCoroutine(SideMoveCheck(target));
-        Vector3 StartPos = transform.position;
-        Vector3 EndPos = target.transform.position;
-        EndPos.y = transform.position.y;
-        agent.speed = AttackSpeed;
-
-        attackArea.SetActive(true);
+       
+    }
+    public IEnumerator JumpAction(Vector3 StartPos,Vector3 EndPos)
+    {
+        NowCoroutine = JumpAction(StartPos, EndPos);
         if (agent.pathStatus != NavMeshPathStatus.PathInvalid)
         {
             agent.SetDestination(EndPos);
@@ -101,8 +103,7 @@ public class JumpAttack_NavMesh : Action
         }
         yield return new WaitForSeconds(AttackWaitTime);
         anim.SetBool("Attack", true);
-        yield return StartCoroutine(WaitAnimationEnd("Stance"));
-        
+        attackArea.SetActive(true);
         agent.Resume();
         StopFlag = false;
         while (!StopFlag)
@@ -121,18 +122,20 @@ public class JumpAttack_NavMesh : Action
         StopFlag = false;
         agent.Stop();
         agent.velocity *= 0;
-        yield return StartCoroutine(Backmove(StartPos));
+        Debug.Log(132);
+        StartCoroutine(Backmove(StartPos));
 
     }
     public IEnumerator Backmove(Vector3 StartPos)
     {
+        NowCoroutine = Backmove(StartPos);
         if (agent.pathStatus != NavMeshPathStatus.PathInvalid)
         {
             agent.SetDestination(StartPos);
             StopPosObj.transform.position = StartPos;
         }
-        yield return StartCoroutine(WaitAnimationEnd("Attack"));
         yield return new WaitForSeconds(BackWaitTime);
+        attackArea.SetActive(false);
         anim.SetBool("Return", true);
         agent.Resume();
         StopFlag = false;
@@ -162,65 +165,10 @@ public class JumpAttack_NavMesh : Action
         Range.TouchChar = null;
         Range.CharacterOnTouch = false;
         agent.ResetPath();
-        anim.SetBool("Walk", false);
         anim.SetBool("Attack", false);
         agent.speed = WalkSpeed;
         SetSearchAction(true);
-        yield break;
-    }
-    IEnumerator SideMoveCheck(GameObject Target)
-    {
-        RaycastHit hit;
-        if (Physics.SphereCast(transform.position, 1, transform.forward, out hit))
-        {
-            if (hit.collider.tag == Tags.Enemy)
-            {
-                yield return StartCoroutine(SideMove(Target));
-            }
-        }
-    }
-    private IEnumerator WaitAnimationEnd(string animatorName)
-    {
-        bool finish = false;
-        while (!finish)
-        {
-            AnimatorStateInfo nowState = anim.GetCurrentAnimatorStateInfo(0);
-            if (!nowState.IsName(animatorName)) { anim.Play(animatorName); }
-            if (nowState.IsName(animatorName) && nowState.normalizedTime >= 0.9f)
-            { finish = true; }
-            else
-            {
-                yield return null;
-            }
-        }
-    }
-    IEnumerator SideMove(GameObject Target)
-    {
-        float time = 1;
-        float movetime = 0;
-        float Rnd = Random.value;
-        float move = 5 * Time.deltaTime;
-
-        while (time >= movetime)
-        {
-            agent.velocity /= 2;
-            movetime += Time.deltaTime;
-            Turn(Target, gameObject);
-            if (Rnd <= 0.5)
-            {
-                agent.Move(transform.right * move);
-            }
-            else
-            {
-                agent.Move(-transform.right * move);
-            }
-            yield return null;
-        }
-        StopCoroutine(JumpAction(Target));
-        agent.Stop();
-        agent.velocity *= 0;
-        agent.speed = WalkSpeed;
-        StartCoroutine(JumpAction(Target));
+        SetCoroutineReset();
         yield break;
     }
     private void OnTriggerExit(Collider other)

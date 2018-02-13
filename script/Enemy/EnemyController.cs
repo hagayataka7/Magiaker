@@ -38,7 +38,10 @@ public class EnemyController : Character
     {
         Action.StopCoroutines();
     }
-
+    private void Awake()
+    {
+        Action = GetComponent<Action>();
+    }
     protected virtual void Start()
     {
         abnManager.StateSymbolMaterial = abnStateManager.AbnStateSymbol;
@@ -47,10 +50,14 @@ public class EnemyController : Character
         agent = GetComponent<NavMeshAgent>();
         PC = GameObject.FindGameObjectWithTag("Player");
         PLController = PC.GetComponent<PlayerController>();
-        Action = GetComponent<Action>();
+       
         Sensor = PlayerSensor.GetComponent<PlayerSensor>();
     }
-
+    private void OnEnable()
+    {
+        if(Action!=null)
+        Action.PauseEnd();
+    }
     void Update()
     {
         if (stop)
@@ -130,6 +137,7 @@ public class EnemyController : Character
     public override void Death()
     {
         base.Death();
+        Action.StopCoroutines();
         StartCoroutine(DeathStart());
     }
     private IEnumerator DeathStart()

@@ -60,7 +60,6 @@ public class WalkandAttack : Action
                     //transform.positionを変更して移動する
                     transform.position += (transform.forward * movedistance);
                 }
-
             }
             //targetに対しての正面を向いていればJumpActionのコルーチンを開始する
             else if (Mathf.Abs(Mathf.Abs(transform.eulerAngles.y) - Mathf.Abs(targetRot.y)) < 1 && GetSearchAction())
